@@ -39,6 +39,6 @@ jobs:
         run: ./gradlew clean test jacocoTestReport check
 
       - name: SonarCloud analysis
-        run: ./gradlew sonarqube
+        run: ./gradlew sonar
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
