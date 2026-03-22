@@ -14,9 +14,11 @@ import io.javalin.rendering.template.JavalinJte;
 
 public class App {
     private static final int DEFAULT_PORT = 7070;
+
     private static final String DEFAULT_HOST = "0.0.0.0";
 
     public static Javalin getApp() throws Exception {
+
         var dataSource = DataSourceFactory.getDataSource();
         DatabaseInitializer.init(dataSource);
         BaseRepository.setDataSource(dataSource);
@@ -37,6 +39,7 @@ public class App {
     }
 
     public static void main(String[] args) throws Exception {
+
         var app = getApp();
         app.start(DEFAULT_HOST, getPort());
     }
@@ -48,6 +51,7 @@ public class App {
     }
 
     private static int getPort() {
+
         var port = System.getenv("PORT");
         return port == null ? DEFAULT_PORT : Integer.parseInt(port);
     }
