@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 class AppTest {
     @Test
-    void testGetApp() {
+    void testGetApp() throws Exception {
         var app = App.getApp();
         Assertions.assertNotNull(app);
     }
