@@ -3,6 +3,8 @@ package hexlet.code.repository;
 import hexlet.code.model.Url;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class UrlRepository extends BaseRepository {
@@ -13,13 +15,15 @@ public class UrlRepository extends BaseRepository {
                 var connection = dataSource.getConnection();
                 var statement = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)
         ) {
+            var createdAt = new Timestamp(System.currentTimeMillis());
             statement.setString(1, url.getName());
-            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            statement.setTimestamp(2, createdAt);
             statement.executeUpdate();
 
             try (var generatedKeys = statement.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     url.setId(generatedKeys.getLong(1));
+                    url.setCreatedAt(createdAt);
                 }
             }
         }
@@ -71,5 +75,27 @@ public class UrlRepository extends BaseRepository {
         }
 
         return Optional.empty();
+    }
+
+    public static List<Url> getEntities() throws Exception {
+        var sql = "SELECT * FROM urls ORDER BY created_at DESC, id DESC";
+        var urls = new ArrayList<Url>();
+
+        try (
+                var connection = dataSource.getConnection();
+                var statement = connection.prepareStatement(sql);
+                var resultSet = statement.executeQuery()
+        ) {
+            while (resultSet.next()) {
+                var url = new Url(
+                        resultSet.getLong("id"),
+                        resultSet.getString("name"),
+                        resultSet.getTimestamp("created_at")
+                );
+                urls.add(url);
+            }
+        }
+
+        return urls;
     }
 }

@@ -1,5 +1,11 @@
+@param String url = ""
+@param String flash = null
+@param String flashType = null
+
 @template.layout.main(
     pageTitle = "Анализатор страниц",
+    flash = flash,
+    flashType = flashType,
     content = @`
         <div class="row">
             <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
@@ -10,11 +16,12 @@
                         <label for="url-name" class="visually-hidden">Url для проверки</label>
                         <input id="url-name" type="text" name="url"
                                class="form-control form-control-lg"
-                               placeholder="https://www.example.com">
+                               placeholder="https://www.example.com"
+                               value="${url}">
                     </div>
-                    <div class="col-2">
+                    <div class="col-4">
                         <input type="submit"
-                               class="btn btn-primary btn-lg ms-3 px-5 text-uppercase mx-3"
+                               class="btn btn-primary btn-lg px-5 text-uppercase"
                                value="Проверить">
                     </div>
                 </form>
