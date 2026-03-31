@@ -15,6 +15,12 @@ public class DataSourceFactory {
         var config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
 
+        if (jdbcUrl.startsWith("jdbc:postgresql:")) {
+            config.setDriverClassName("org.postgresql.Driver");
+        } else if (jdbcUrl.startsWith("jdbc:h2:")) {
+            config.setDriverClassName("org.h2.Driver");
+        }
+
         return new HikariDataSource(config);
     }
 }
