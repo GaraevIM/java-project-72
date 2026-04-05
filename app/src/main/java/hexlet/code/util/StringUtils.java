@@ -12,6 +12,6 @@ public class StringUtils {
             return value;
         }
 
-        return value.substring(0, MAX_LENGTH) + "....";
+        return value.substring(0, MAX_LENGTH) + "...";
     }
 }
