@@ -4,7 +4,9 @@ import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.resolve.ResourceCodeResolver;
 import hexlet.code.model.Url;
+import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import hexlet.code.util.DataSourceFactory;
 import hexlet.code.util.DatabaseInitializer;
@@ -12,6 +14,8 @@ import hexlet.code.util.NamedRoutes;
 import io.javalin.Javalin;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.rendering.template.JavalinJte;
+import kong.unirest.core.Unirest;
+import org.jsoup.Jsoup;
 
 import java.net.URI;
 import java.net.URL;
@@ -71,19 +75,62 @@ public class App {
             });
 
             config.routes.get(NamedRoutes.urlsPath(), ctx -> {
+                var urls = UrlRepository.getEntities();
+                var latestChecks = new HashMap<Long, UrlCheck>();
+
+                for (var url : urls) {
+                    var latestCheck = UrlCheckRepository.findLatestByUrlId(url.getId());
+                    latestCheck.ifPresent(urlCheck -> latestChecks.put(url.getId(), urlCheck));
+                }
+
                 var model = baseModel(ctx);
-                model.put("urls", UrlRepository.getEntities());
+                model.put("urls", urls);
+                model.put("latestChecks", latestChecks);
                 ctx.render("urls/index.jte", model);
             });
 
-            config.routes.get("/urls/{id}", ctx -> {
+            config.routes.get(NamedRoutes.urlPath("{id}"), ctx -> {
                 var id = ctx.pathParamAsClass("id", Long.class).get();
-                var url = UrlRepository.find(id).
-                        orElseThrow(() -> new NotFoundResponse("Page not found"));
+                var url = UrlRepository.find(id).orElseThrow(() -> new NotFoundResponse("Page not found"));
 
                 var model = baseModel(ctx);
                 model.put("url", url);
+                model.put("checks", UrlCheckRepository.findByUrlId(id));
                 ctx.render("urls/show.jte", model);
+            });
+
+            config.routes.post(NamedRoutes.urlChecksPath("{id}"), ctx -> {
+                var id = ctx.pathParamAsClass("id", Long.class).get();
+                var url = UrlRepository.find(id).orElseThrow(() -> new NotFoundResponse("Page not found"));
+
+                try {
+                    var response = Unirest.get(url.getName()).asString();
+
+                    if (response.getStatus() >= 400) {
+                        setFlash(ctx, "Произошла ошибка при проверке", "danger");
+                        ctx.redirect(NamedRoutes.urlPath(id));
+                        return;
+                    }
+
+                    var document = Jsoup.parse(response.getBody());
+
+                    var h1Element = document.selectFirst("h1");
+                    var h1 = h1Element == null ? "" : h1Element.text();
+
+                    var title = document.title();
+
+                    var descriptionElement = document.selectFirst("meta[name=description]");
+                    var description = descriptionElement == null ? "" : descriptionElement.attr("content");
+
+                    var urlCheck = new UrlCheck(id, response.getStatus(), h1, title, description);
+                    UrlCheckRepository.save(urlCheck);
+
+                    setFlash(ctx, "Страница успешно проверена", "success");
+                } catch (Exception e) {
+                    setFlash(ctx, "Произошла ошибка при проверке", "danger");
+                }
+
+                ctx.redirect(NamedRoutes.urlPath(id));
             });
         });
     }
@@ -141,9 +188,11 @@ public class App {
 
     private static String popSessionAttribute(io.javalin.http.Context ctx, String key) {
         String value = ctx.sessionAttribute(key);
+
         if (value != null) {
             ctx.req().getSession().removeAttribute(key);
         }
+
         return value;
     }
 }

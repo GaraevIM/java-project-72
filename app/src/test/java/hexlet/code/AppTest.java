@@ -2,11 +2,16 @@ package hexlet.code;
 
 import hexlet.code.model.Url;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import hexlet.code.util.DataSourceFactory;
 import hexlet.code.util.DatabaseInitializer;
 import io.javalin.testtools.JavalinTest;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +24,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 class AppTest {
+    private static MockWebServer mockWebServer;
+
+    @BeforeAll
+    static void beforeAll() throws Exception {
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
+    }
+
+    @AfterAll
+    static void afterAll() throws Exception {
+        mockWebServer.close();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         var testDatabaseUrl = "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1;";
@@ -158,6 +176,7 @@ class AppTest {
 
             Assertions.assertEquals(200, response.statusCode());
             Assertions.assertTrue(response.body().contains("data-test=\"urls\""));
+            Assertions.assertTrue(response.body().contains(url.getName()));
         });
     }
 
@@ -201,6 +220,95 @@ class AppTest {
         });
     }
 
+    @Test
+    void testCheckUrlSuccess() throws Exception {
+        var app = App.getApp();
+
+        var longText = "a".repeat(205);
+        var html = "<html><head><title>" + longText + "</title>"
+                + "<meta name=\"description\" content=\"" + longText + "\"></head>"
+                + "<body><h1>" + longText + "</h1></body></html>";
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(html));
+
+        JavalinTest.test(app, (server, client) -> {
+            var httpClientBuilder = HttpClient.newBuilder();
+            httpClientBuilder.followRedirects(HttpClient.Redirect.NEVER);
+            var httpClient = httpClientBuilder.build();
+
+            var normalizedBaseUrl = getMockServerBaseUrl();
+
+            var createRequest = buildPostRequest(
+                    client.getOrigin() + "/urls",
+                    "url=" + normalizedBaseUrl + "/pages"
+            );
+            httpClient.send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+            var savedUrl = UrlRepository.findByName(normalizedBaseUrl);
+            Assertions.assertTrue(savedUrl.isPresent());
+
+            var checkRequest = buildPostRequest(
+                    client.getOrigin() + "/urls/" + savedUrl.get().getId() + "/checks",
+                    ""
+            );
+            var checkResponse = httpClient.send(checkRequest, HttpResponse.BodyHandlers.ofString());
+
+            Assertions.assertEquals(302, checkResponse.statusCode());
+            Assertions.assertEquals(
+                    "/urls/" + savedUrl.get().getId(),
+                    checkResponse.headers().firstValue("Location").orElse("")
+            );
+
+            var checks = UrlCheckRepository.findByUrlId(savedUrl.get().getId());
+            Assertions.assertEquals(1, checks.size());
+
+            var check = checks.get(0);
+            Assertions.assertEquals(200, check.getStatusCode());
+            Assertions.assertEquals(longText, check.getH1());
+            Assertions.assertEquals(longText, check.getTitle());
+            Assertions.assertEquals(longText, check.getDescription());
+        });
+    }
+
+    @Test
+    void testCheckUrlError() throws Exception {
+        var app = App.getApp();
+
+        mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("error"));
+
+        JavalinTest.test(app, (server, client) -> {
+            var httpClientBuilder = HttpClient.newBuilder();
+            httpClientBuilder.followRedirects(HttpClient.Redirect.NEVER);
+            var httpClient = httpClientBuilder.build();
+
+            var normalizedBaseUrl = getMockServerBaseUrl();
+
+            var createRequest = buildPostRequest(
+                    client.getOrigin() + "/urls",
+                    "url=" + normalizedBaseUrl + "/pages"
+            );
+            httpClient.send(createRequest, HttpResponse.BodyHandlers.ofString());
+
+            var savedUrl = UrlRepository.findByName(normalizedBaseUrl);
+            Assertions.assertTrue(savedUrl.isPresent());
+
+            var checkRequest = buildPostRequest(
+                    client.getOrigin() + "/urls/" + savedUrl.get().getId() + "/checks",
+                    ""
+            );
+            var checkResponse = httpClient.send(checkRequest, HttpResponse.BodyHandlers.ofString());
+
+            Assertions.assertEquals(302, checkResponse.statusCode());
+            Assertions.assertEquals(
+                    "/urls/" + savedUrl.get().getId(),
+                    checkResponse.headers().firstValue("Location").orElse("")
+            );
+
+            var checks = UrlCheckRepository.findByUrlId(savedUrl.get().getId());
+            Assertions.assertEquals(0, checks.size());
+        });
+    }
+
     private HttpRequest buildPostRequest(String url, String formData) {
         var requestBuilder = HttpRequest.newBuilder();
         requestBuilder.uri(URI.create(url));
@@ -210,6 +318,10 @@ class AppTest {
     }
 
     private String encodeForm(String formData) {
+        if (formData.isEmpty()) {
+            return "";
+        }
+
         var parts = formData.split("&");
         var result = new StringBuilder();
 
@@ -226,5 +338,10 @@ class AppTest {
         }
 
         return result.toString();
+    }
+
+    private String getMockServerBaseUrl() {
+        var uri = URI.create(mockWebServer.url("/").toString());
+        return String.format("%s://%s:%d", uri.getScheme(), uri.getHost(), uri.getPort());
     }
 }

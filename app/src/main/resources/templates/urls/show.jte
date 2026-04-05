@@ -1,5 +1,8 @@
 @import hexlet.code.model.Url
+@import hexlet.code.model.UrlCheck
+@import hexlet.code.util.StringUtils
 @param Url url
+@param java.util.List<UrlCheck> checks
 @param String flash = null
 @param String flashType = null
 
@@ -47,6 +50,16 @@
                 </tr>
             </thead>
             <tbody>
+                @for (UrlCheck check : checks)
+                    <tr>
+                        <td>${check.getId()}</td>
+                        <td>${check.getStatusCode()}</td>
+                        <td>${StringUtils.truncate(check.getH1())}</td>
+                        <td>${StringUtils.truncate(check.getTitle())}</td>
+                        <td>${StringUtils.truncate(check.getDescription())}</td>
+                        <td>${check.getCreatedAt().toLocalDateTime().toLocalDate().toString()}</td>
+                    </tr>
+                @endfor
             </tbody>
         </table>
     `
