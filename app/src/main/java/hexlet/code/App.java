@@ -24,11 +24,8 @@ import java.util.Map;
 
 public class App {
     private static final int DEFAULT_PORT = 7070;
-
     private static final String DEFAULT_HOST = "0.0.0.0";
-
     private static final String FLASH_KEY = "flash";
-
     private static final String FLASH_TYPE_KEY = "flashType";
 
     public static Javalin getApp() throws Exception {
@@ -63,8 +60,9 @@ public class App {
                 var existingUrl = UrlRepository.findByName(normalizedUrl);
 
                 if (existingUrl.isPresent()) {
+                    var savedUrl = existingUrl.orElseThrow();
                     setFlash(ctx, "Страница уже существует", "info");
-                    ctx.redirect(NamedRoutes.urlPath(existingUrl.get().getId()));
+                    ctx.redirect(NamedRoutes.urlPath(savedUrl.getId()));
                     return;
                 }
 
