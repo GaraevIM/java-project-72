@@ -24,8 +24,11 @@ import java.util.Map;
 
 public class App {
     private static final int DEFAULT_PORT = 7070;
+
     private static final String DEFAULT_HOST = "0.0.0.0";
+
     private static final String FLASH_KEY = "flash";
+
     private static final String FLASH_TYPE_KEY = "flashType";
 
     public static Javalin getApp() throws Exception {
