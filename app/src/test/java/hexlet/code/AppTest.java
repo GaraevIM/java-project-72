@@ -324,17 +324,19 @@ class AppTest {
 
         var parts = formData.split("&");
         var result = new StringBuilder();
+        var isFirst = true;
 
-        for (int i = 0; i < parts.length; i++) {
-            var keyValue = parts[i].split("=", 2);
+        for (var part : parts) {
+            var keyValue = part.split("=", 2);
 
-            if (i > 0) {
+            if (!isFirst) {
                 result.append("&");
             }
 
             result.append(URLEncoder.encode(keyValue[0], StandardCharsets.UTF_8));
             result.append("=");
             result.append(URLEncoder.encode(keyValue[1], StandardCharsets.UTF_8));
+            isFirst = false;
         }
 
         return result.toString();
