@@ -25,7 +25,7 @@
                 </tr>
                 <tr>
                     <td>Дата создания</td>
-                    <td>${url.getCreatedAt().toLocalDateTime().toLocalDate().toString()}</td>
+                    <td>${url.getCreatedAt().toLocalDate().toString()}</td>
                 </tr>
             </tbody>
         </table>
@@ -57,7 +57,7 @@
                         <td>${StringUtils.truncate(check.getH1())}</td>
                         <td>${StringUtils.truncate(check.getTitle())}</td>
                         <td>${StringUtils.truncate(check.getDescription())}</td>
-                        <td>${check.getCreatedAt().toLocalDateTime().toLocalDate().toString()}</td>
+                        <td>${check.getCreatedAt().toLocalDate().toString()}</td>
                     </tr>
                 @endfor
             </tbody>

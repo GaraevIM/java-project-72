@@ -27,7 +27,7 @@
                         <td><a href="/urls/${url.getId()}">${url.getName()}</a></td>
                         <td>
                             @if (latestChecks.get(url.getId()) != null)
-                                ${latestChecks.get(url.getId()).getCreatedAt().toLocalDateTime().toLocalDate().toString()}
+                                ${latestChecks.get(url.getId()).getCreatedAt().toLocalDate().toString()}
                             @endif
                         </td>
                         <td>

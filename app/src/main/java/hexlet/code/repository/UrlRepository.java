@@ -3,6 +3,7 @@ package hexlet.code.repository;
 import hexlet.code.model.Url;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -15,9 +16,9 @@ public class UrlRepository extends BaseRepository {
                 var connection = dataSource.getConnection();
                 var statement = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)
         ) {
-            var createdAt = new Timestamp(System.currentTimeMillis());
+            var createdAt = LocalDateTime.now();
             statement.setString(1, url.getName());
-            statement.setTimestamp(2, createdAt);
+            statement.setTimestamp(2, Timestamp.valueOf(createdAt));
             statement.executeUpdate();
 
             try (var generatedKeys = statement.getGeneratedKeys()) {
@@ -43,7 +44,7 @@ public class UrlRepository extends BaseRepository {
                     var url = new Url(
                             resultSet.getLong("id"),
                             resultSet.getString("name"),
-                            resultSet.getTimestamp("created_at")
+                            resultSet.getTimestamp("created_at").toLocalDateTime()
                     );
                     return Optional.of(url);
                 }
@@ -67,7 +68,7 @@ public class UrlRepository extends BaseRepository {
                     var url = new Url(
                             resultSet.getLong("id"),
                             resultSet.getString("name"),
-                            resultSet.getTimestamp("created_at")
+                            resultSet.getTimestamp("created_at").toLocalDateTime()
                     );
                     return Optional.of(url);
                 }
@@ -90,7 +91,7 @@ public class UrlRepository extends BaseRepository {
                 var url = new Url(
                         resultSet.getLong("id"),
                         resultSet.getString("name"),
-                        resultSet.getTimestamp("created_at")
+                        resultSet.getTimestamp("created_at").toLocalDateTime()
                 );
                 urls.add(url);
             }
