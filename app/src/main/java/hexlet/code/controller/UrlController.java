@@ -1,7 +1,6 @@
 package hexlet.code.controller;
 
 import hexlet.code.model.Url;
-import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
 import hexlet.code.util.NamedRoutes;
@@ -59,12 +58,7 @@ public class UrlController {
 
     public static void list(Context ctx) throws Exception {
         var urls = UrlRepository.getEntities();
-        var latestChecks = new HashMap<Long, UrlCheck>();
-
-        for (var url : urls) {
-            var latestCheck = UrlCheckRepository.findLatestByUrlId(url.getId());
-            latestCheck.ifPresent(urlCheck -> latestChecks.put(url.getId(), urlCheck));
-        }
+        var latestChecks = UrlCheckRepository.findLatestChecks();
 
         var model = baseModel(ctx);
         model.put("urls", urls);
@@ -105,7 +99,7 @@ public class UrlController {
             var descriptionElement = document.selectFirst("meta[name=description]");
             var description = descriptionElement == null ? "" : descriptionElement.attr("content");
 
-            var urlCheck = new UrlCheck(id, response.getStatus(), h1, title, description);
+            var urlCheck = new hexlet.code.model.UrlCheck(id, response.getStatus(), h1, title, description);
             UrlCheckRepository.save(urlCheck);
 
             setFlash(ctx, "Страница успешно проверена", "success");
