@@ -1,6 +1,7 @@
 package hexlet.code;
 
 import hexlet.code.model.Url;
+import hexlet.code.model.UrlCheck;
 import hexlet.code.repository.BaseRepository;
 import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.repository.UrlRepository;
@@ -181,6 +182,43 @@ class AppTest {
     }
 
     @Test
+    void testUrlsPageShowsLatestChecks() throws Exception {
+        var app = App.getApp();
+
+        var firstUrl = new Url("https://first-example.com");
+        var secondUrl = new Url("https://second-example.com");
+        UrlRepository.save(firstUrl);
+        UrlRepository.save(secondUrl);
+
+        var oldCheck = new UrlCheck(firstUrl.getId(), 201, "old-h1", "old-title", "old-description");
+        UrlCheckRepository.save(oldCheck);
+
+        var latestCheck = new UrlCheck(firstUrl.getId(), 418, "latest-h1", "latest-title", "latest-description");
+        UrlCheckRepository.save(latestCheck);
+
+        var secondUrlCheck = new UrlCheck(secondUrl.getId(), 204, "second-h1", "second-title", "second-description");
+        UrlCheckRepository.save(secondUrlCheck);
+
+        JavalinTest.test(app, (server, client) -> {
+            var httpClient = HttpClient.newHttpClient();
+            var requestBuilder = HttpRequest.newBuilder();
+            requestBuilder.uri(URI.create(client.getOrigin() + "/urls"));
+            requestBuilder.GET();
+            var request = requestBuilder.build();
+
+            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            var body = response.body();
+
+            Assertions.assertEquals(200, response.statusCode());
+            Assertions.assertTrue(body.contains("data-test=\"urls\""));
+            Assertions.assertTrue(body.contains(firstUrl.getName()));
+            Assertions.assertTrue(body.contains(secondUrl.getName()));
+            Assertions.assertTrue(body.contains("418"));
+            Assertions.assertTrue(body.contains("204"));
+        });
+    }
+
+    @Test
     void testShowUrlPageContainsChecksFormAndTable() throws Exception {
         var app = App.getApp();
         var url = new Url("https://google.com");
@@ -307,6 +345,50 @@ class AppTest {
             var checks = UrlCheckRepository.findByUrlId(savedUrl.get().getId());
             Assertions.assertEquals(0, checks.size());
         });
+    }
+
+    @Test
+    void testFindLatestChecksReturnsLatestCheckForEachUrl() throws Exception {
+        var firstUrl = new Url("https://latest-first.com");
+        var secondUrl = new Url("https://latest-second.com");
+        UrlRepository.save(firstUrl);
+        UrlRepository.save(secondUrl);
+
+        var firstOldCheck = new UrlCheck(firstUrl.getId(), 200, "first-old-h1", "first-old-title", "first-old-description");
+        UrlCheckRepository.save(firstOldCheck);
+
+        var firstLatestCheck = new UrlCheck(
+                firstUrl.getId(),
+                301,
+                "first-latest-h1",
+                "first-latest-title",
+                "first-latest-description"
+        );
+        UrlCheckRepository.save(firstLatestCheck);
+
+        var secondLatestCheck = new UrlCheck(
+                secondUrl.getId(),
+                404,
+                "second-latest-h1",
+                "second-latest-title",
+                "second-latest-description"
+        );
+        UrlCheckRepository.save(secondLatestCheck);
+
+        var latestChecks = UrlCheckRepository.findLatestChecks();
+
+        Assertions.assertEquals(2, latestChecks.size());
+        Assertions.assertEquals(301, latestChecks.get(firstUrl.getId()).getStatusCode());
+        Assertions.assertEquals("first-latest-h1", latestChecks.get(firstUrl.getId()).getH1());
+        Assertions.assertEquals(404, latestChecks.get(secondUrl.getId()).getStatusCode());
+        Assertions.assertEquals("second-latest-h1", latestChecks.get(secondUrl.getId()).getH1());
+    }
+
+    @Test
+    void testFindLatestChecksReturnsEmptyMapWhenNoChecks() throws Exception {
+        var latestChecks = UrlCheckRepository.findLatestChecks();
+
+        Assertions.assertTrue(latestChecks.isEmpty());
     }
 
     private HttpRequest buildPostRequest(String url, String formData) {
