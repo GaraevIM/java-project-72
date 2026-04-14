@@ -182,43 +182,6 @@ class AppTest {
     }
 
     @Test
-    void testUrlsPageShowsLatestChecks() throws Exception {
-        var app = App.getApp();
-
-        var firstUrl = new Url("https://first-example.com");
-        var secondUrl = new Url("https://second-example.com");
-        UrlRepository.save(firstUrl);
-        UrlRepository.save(secondUrl);
-
-        var oldCheck = new UrlCheck(firstUrl.getId(), 201, "old-h1", "old-title", "old-description");
-        UrlCheckRepository.save(oldCheck);
-
-        var latestCheck = new UrlCheck(firstUrl.getId(), 418, "latest-h1", "latest-title", "latest-description");
-        UrlCheckRepository.save(latestCheck);
-
-        var secondUrlCheck = new UrlCheck(secondUrl.getId(), 204, "second-h1", "second-title", "second-description");
-        UrlCheckRepository.save(secondUrlCheck);
-
-        JavalinTest.test(app, (server, client) -> {
-            var httpClient = HttpClient.newHttpClient();
-            var requestBuilder = HttpRequest.newBuilder();
-            requestBuilder.uri(URI.create(client.getOrigin() + "/urls"));
-            requestBuilder.GET();
-            var request = requestBuilder.build();
-
-            var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            var body = response.body();
-
-            Assertions.assertEquals(200, response.statusCode());
-            Assertions.assertTrue(body.contains("data-test=\"urls\""));
-            Assertions.assertTrue(body.contains(firstUrl.getName()));
-            Assertions.assertTrue(body.contains(secondUrl.getName()));
-            Assertions.assertTrue(body.contains("418"));
-            Assertions.assertTrue(body.contains("204"));
-        });
-    }
-
-    @Test
     void testShowUrlPageContainsChecksFormAndTable() throws Exception {
         var app = App.getApp();
         var url = new Url("https://google.com");
@@ -354,7 +317,13 @@ class AppTest {
         UrlRepository.save(firstUrl);
         UrlRepository.save(secondUrl);
 
-        var firstOldCheck = new UrlCheck(firstUrl.getId(), 200, "first-old-h1", "first-old-title", "first-old-description");
+        var firstOldCheck = new UrlCheck(
+                firstUrl.getId(),
+                200,
+                "first-old-h1",
+                "first-old-title",
+                "first-old-description"
+        );
         UrlCheckRepository.save(firstOldCheck);
 
         var firstLatestCheck = new UrlCheck(
